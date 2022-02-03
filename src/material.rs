@@ -59,7 +59,7 @@ impl BRDF {
     }
 }
 
-trait Material {
+pub trait Material {
     fn query(&self, position: &Vector3f) -> Vector3f;
 }
 
