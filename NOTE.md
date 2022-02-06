@@ -1,0 +1,1 @@
+当前`HitRecord/SurfaceInteraction`中的法向量总是指向物体的外部
