@@ -67,6 +67,9 @@ pub trait Material {
     fn scatter(&self, di: &Vector3f, rec: &HitRecord) -> Option<(Vector3f, Color3f)>;
     // passive light emission.
     fn emit(&self, _di: &Vector3f, _rec: &HitRecord) -> Color3f { Color3f::zeros() }
+
+    fn is_diffuse(&self) -> bool { false }
+    fn bsdf(&self, _wo: &Vector3f, _wi: &Vector3f) -> Color3f { Color3f::zeros() }
     // fn query(&self, position: &Vector3f) -> Vector3f;
 }
 
@@ -113,10 +116,19 @@ impl Material for Lambertian {
         let r1: Fp = random();
         let r2: Fp = random();
         let phi = 2. * consts::PI * r1;
-        let r2s = r2.sqrt();
-        let ds = (phi.cos() * r2s * u + phi.sin() * r2s * v + (1. - r2).sqrt() * w).normalize();
+        let r2s = r2.sqrt(); // sin_theta
+
+        let x = phi.cos() * r2s;
+        let y = phi.sin() * r2s;
+        let z = (1. - r2).sqrt(); // cos_theta
+        let ds = x * u + y * v + z * w;
 
         Some((ds, self.albedo))
+    }
+
+    fn is_diffuse(&self) -> bool { true }
+    fn bsdf(&self, _wo: &Vector3f, _wi: &Vector3f) -> Color3f {
+        self.albedo * consts::FRAC_1_PI
     }
 }
 
@@ -202,5 +214,9 @@ impl Material for DiffuseLight {
 
     fn emit(&self, _di: &Vector3f, _rec: &HitRecord) -> Color3f {
         self.c
+    }
+
+    fn is_diffuse(&self) -> bool {
+        true
     }
 }

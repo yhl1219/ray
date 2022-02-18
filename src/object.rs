@@ -1,16 +1,13 @@
-use crate::config::{Fp, Point3f, Color3f, T_MIN};
+use crate::config::{Fp, Point3f, T_MIN};
 use crate::common::{Ray, HitRecord};
 use crate::material::Material;
 
 use std::sync::Arc;
-use rand::prelude::*;
 
 type DynMaterial = dyn Material + Sync + Send;
 
 pub trait Object {
     fn intersect(&self, rec: &mut HitRecord, ray: &Ray) -> bool;
-    fn is_light(&self) -> bool { false }
-    fn emit(&self, _rng: &mut ThreadRng) -> Option<(Ray, Color3f)> { None }
 }
 
 pub struct Sphere {

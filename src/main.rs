@@ -3,16 +3,16 @@ mod material;
 mod common;
 mod object;
 mod render;
+mod light;
+mod sppm;
 
 use config::*;
 use render::*;
 use object::*;
 use material::*;
+use light::*;
 
-use image::{ImageBuffer, Rgb, RgbImage};
-use rayon::prelude::*;
-use rand::thread_rng;
-use progressing::{Baring, mapping::Bar as MappingBar};
+use sppm::render_sppm;
 
 use std::env;
 use std::sync::Arc;
@@ -65,9 +65,11 @@ fn cornell_box() -> Scene {
     scene.add(Arc::new(Sphere::new(Point3f::new(278.,  10555., 278.), 10000., white.clone())));
     scene.add(Arc::new(Sphere::new(Point3f::new(278.,  278., 10555.), 10000., white.clone())));
     
-    scene.add(Arc::new(Sphere::new(Point3f::new(278.,  555., 278.), 50., light)));
+    scene.add(Arc::new(Sphere::new(Point3f::new(278.,  545., 278.), 50., light)));
     scene.add(Arc::new(Sphere::new(Point3f::new(120., 90., 120.), 90., glass)));
     scene.add(Arc::new(Sphere::new(Point3f::new(360., 90., 360.), 90., mirror)));
+
+    scene.add_light(Arc::new(SphereLight::new(Point3f::new(278.,  545., 278.), 50., Color3f::new(1e6, 1e6, 1e6))));
     scene
 }
 
@@ -80,43 +82,6 @@ fn main() {
     }
 
     let scene = cornell_box();
-
-    let mut buf: RgbImage = ImageBuffer::new(IMG_WIDTH, IMG_HEIGHT);
-    let mut results = Vec::new();
-
-    let mut progress_bar = MappingBar::with_range(0, IMG_HEIGHT as i32).timed();
-    let gamma = |x: Fp| x.powf(1.0 / 2.2);
-
-    // render each line of image sequentially
-    for y in 0..IMG_HEIGHT {
-        let mut line_result: Vec<_> = (0..IMG_WIDTH).into_par_iter().map(|x| {
-            let mut rng = thread_rng();
-            let mut color = Vector3f::zeros();
-            for _s in 0..SAMPLES_PER_PIXEL {
-                let ray = scene.camera.emit(x, y, &mut rng);
-                color += shade(&scene, &ray, 0, &mut rng);
-            }
-
-            let scale = 1. / SAMPLES_PER_PIXEL as Fp;
-            let c = 256. * (scale * color).apply_into(|x| *x = gamma(*x));
-            let r = c.x.clamp(0., 255.) as u8;
-            let g = c.y.clamp(0., 255.) as u8;
-            let b = c.z.clamp(0., 255.) as u8;
-            // flip image
-            ((x, IMG_HEIGHT - 1 - y), [r, g, b])
-        }).collect();
-        results.append(&mut line_result);
-        
-        progress_bar.add(1);
-        println!("{}", progress_bar);
-        // if progress_bar.has_progressed_significantly() {
-        //     progress_bar.remember_significant_progress();
-        //     println!("{}", progress_bar);
-        // }
-    }
-
-    for ((x, y), pixel) in results {
-        buf.put_pixel(x, y, Rgb(pixel));
-    }
-    buf.save(output_path).unwrap()
+    // render(&scene, output_path);
+    render_sppm(&scene, output_path);
 }
