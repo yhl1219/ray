@@ -1,6 +1,6 @@
 use crate::config::*;
 use crate::common::*;
-use crate::object::{Object};
+use crate::object::{Primitive, BVHNode};
 use crate::light::{Light};
 
 use std::sync::Arc;
@@ -9,7 +9,6 @@ use image::{ImageBuffer, Rgb, RgbImage};
 use rayon::prelude::*;
 use progressing::{Baring, mapping::Bar as MappingBar};
 
-pub type Primitive = dyn Object + Sync + Send;
 pub type DynLight = dyn Light + Sync + Send;
 
 pub struct Camera {
@@ -20,9 +19,10 @@ pub struct Camera {
 }
 
 pub struct Scene {
-    pub objects: Vec<Arc<Primitive>>,
+    objects: Vec<Arc<Primitive>>,
     pub lights: Vec<Arc<DynLight>>,
     pub camera: Camera,
+    bvh: Option<Arc<Primitive>>,
 }
 
 impl Camera {
@@ -63,6 +63,7 @@ impl Scene {
             objects: vec![],
             lights: vec![],
             camera,
+            bvh: None,
         }
     }
 
@@ -73,10 +74,16 @@ impl Scene {
     pub fn add_light(&mut self, light: Arc<DynLight>) {
         self.lights.push(light);
     }
+
+    pub fn build_bvh(&mut self) {
+        let n = self.objects.len();
+        let root = BVHNode::build(self.objects.as_mut_slice(), n, 0);
+        self.bvh = Some(root);
+    }
 }
 
-impl Object for Scene {
-    fn intersect(&self, rec: &mut HitRecord, ray: &Ray) -> bool {
+impl Scene {
+    fn intersect_naive(&self, rec: &mut HitRecord, ray: &Ray) -> bool {
         let mut hit = false;
         let mut t_min = Fp::MAX;
         for obj in &self.objects {
@@ -87,11 +94,18 @@ impl Object for Scene {
                 if t_min > t {
                     t_min = t;
                     // copy
-                    *rec = tmp_rec.clone();
+                    *rec = tmp_rec;
                 }
             }
         }
         hit
+    }
+
+    pub fn intersect(&self, rec: &mut HitRecord, ray: &Ray) -> bool {
+        match &self.bvh {
+            Some(root) => { root.intersect(rec, ray) }
+            None => { self.intersect_naive(rec, ray) }
+        }
     }
 }
 

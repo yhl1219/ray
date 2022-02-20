@@ -8,6 +8,7 @@ pub type Fp = f64;
 pub type Vector3f = Vector3<Fp>;
 pub type Color3f = Vector3<Fp>;
 pub type Point3f = na::Point3<Fp>; 
+pub type Affine3f = na::Affine3<Fp>;
 
 pub const IMG_WIDTH: u32 = 600;
 pub const IMG_HEIGHT: u32 = 600;

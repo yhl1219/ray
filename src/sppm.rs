@@ -1,7 +1,6 @@
 use crate::config::*;
 use crate::common::*;
 use crate::render::*;
-use crate::object::*;
 
 use std::sync::{Arc, Mutex};
 use std::ops::DerefMut;

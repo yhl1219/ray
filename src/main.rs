@@ -65,11 +65,22 @@ fn cornell_box() -> Scene {
     scene.add(Arc::new(Sphere::new(Point3f::new(278.,  10555., 278.), 10000., white.clone())));
     scene.add(Arc::new(Sphere::new(Point3f::new(278.,  278., 10555.), 10000., white.clone())));
     
+    use nalgebra as na;
+    let rot = na::Rotation3::<Fp>::from_euler_angles(0., 0., 0.);
+    let tra = na::Translation3::new(240., 240., 240.);
+    let iso = na::IsometryMatrix3::from_parts(tra, rot);
+    let sim = na::Similarity::from_isometry(iso, 500.);
+    let bunny = BVHNode::from_obj("poly/bunny_200.obj", 
+        &Affine3f::from_matrix_unchecked(sim.to_homogeneous()), glass.clone());
+    // println!("bunny bbox: {:?}", bunny.bounding_box());
+    scene.add(bunny);
+
     scene.add(Arc::new(Sphere::new(Point3f::new(278.,  545., 278.), 50., light)));
     scene.add(Arc::new(Sphere::new(Point3f::new(120., 90., 120.), 90., glass)));
     scene.add(Arc::new(Sphere::new(Point3f::new(360., 90., 360.), 90., mirror)));
 
     scene.add_light(Arc::new(SphereLight::new(Point3f::new(278.,  545., 278.), 50., Color3f::new(1e6, 1e6, 1e6))));
+    scene.build_bvh();
     scene
 }
 

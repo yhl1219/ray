@@ -18,6 +18,7 @@ pub struct HitRecord {
     pub mat: Option<Arc<dyn Material>>
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct AABB {
     pub min: Point3f,
     pub max: Point3f,
@@ -53,14 +54,14 @@ impl AABB {
     }
 
     pub fn union(b1: &AABB, b2: &AABB) -> AABB {
-        let p = b1.min;
-        let q = b2.min;
-        let u = b1.max;
-        let v = b2.max;
         AABB {
-            min: Point3f::new(p.x.min(q.x), p.y.min(q.y), p.z.min(q.z)),
-            max: Point3f::new(u.x.max(v.x), u.y.max(v.y), u.z.max(v.z))
+            min: point_min(&b1.min, &b2.min),
+            max: point_max(&b1.max, &b2.max),
         }
+    }
+
+    pub fn center(&self) -> Point3f {
+        point_mid(&self.min, &self.max)
     }
 }
 
@@ -76,4 +77,20 @@ impl Default for AABB {
 pub fn near_zero(v: &Vector3f) -> bool {
     let eps = 1e-6;
     v.x < eps && v.y < eps && v.z < eps 
+}
+
+fn point_op(f: fn(Fp, Fp) -> Fp, p: &Point3f, q: &Point3f) -> Point3f {
+    Point3f::new(f(p.x, q.x), f(p.y, q.y), f(p.z, q.z))
+}
+
+pub fn point_min(p: &Point3f, q: &Point3f) -> Point3f {
+    point_op(|x, y| { x.min(y) }, p, q)
+}
+
+pub fn point_max(p: &Point3f, q: &Point3f) -> Point3f {
+    point_op(|x, y| { x.max(y) }, p, q)
+}
+
+fn point_mid(p: &Point3f, q: &Point3f) -> Point3f {
+    point_op(|x, y| { (x + y) / 2.0 }, p, q)
 }
